@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <title>Admin Site</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+    <!-- Bootstrap CSS (offline) -->
+    <link href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet" />
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='Datatables/css/dataTables.css') }}">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" />
+
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+        background-color: #f8f9fa;
+      }
+      .container {
+        flex: 1;
+      }
+      /* Estilo para el hover de los nav-links */
+      .nav-item .nav-link:hover {
+        color: #fdfa20 !important;
+        /* Cambiar el color al hacer hover */
+      }
+      /* Estilo para el usuario logueado */
+      .navbar-nav .nav-item .user-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        position: relative;
+      }
+      .navbar-nav .nav-item .user-info i {
+        font-size: 32px;
+        cursor: pointer;
+        color: white;
+      }
+      .navbar-nav .nav-item .user-info .tooltip-text {
+        visibility: hidden;
+        width: 120px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        /* Posición encima del icono */
+        left: 50%;
+        margin-left: -60px;
+        opacity: 0;
+        transition: opacity 0.3s;
+      }
+      .navbar-nav .nav-item .user-info .tooltip-text::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        /* Parte inferior del tooltip */
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: black transparent transparent transparent;
+      }
+      .navbar-nav .nav-item .user-info:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+      }
+      .toast-progress {
+        height: 4px;
+        background-color: #1e7504;
+        width: 100%;
+        animation: progress 5s linear;
+        animation-play-state: paused;
+      }
+      @keyframes progress {
+        from {
+          width: 100%;
+        }
+        to {
+          width: 0%;
+        }
+      }
+      /* Estilos para las tarjetas */
+      /* .card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      } */
+      .card-footer .btn-icon {
+        border-radius: 50%; /* Botones redondos */
+        width: 40px; /* Ancho fijo */
+        height: 40px; /* Altura fija */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 18px; /* Tamaño del icono */
+        margin: 0 5px; /* Espaciado entre botones */
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      .card-footer {
+        display: flex;
+        justify-content: space-between;
+      }
+      .btn-icon {
+        margin-right: 10px; /* Ajusta este valor para cambiar el espacio entre botones */
+      }
+
+      .btn-icon:last-child {
+        margin-right: 0; /* Quita el margen derecho del último botón */
+      }
+
+      .custom-rounded-card {
+        border-radius: 15px; /* Ajusta este valor para cambiar el redondeo */
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+
+      .custom-rounded-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      }
+      </style>
+      {% block style %}{% endblock %}
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-secondary bg-gradient px-2">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+          <img src="{{ url_for('static', filename='png/logo.jpg') }}" alt="Logo" style="height: 56px" />
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <div class="navbar-nav ms-auto">
+            <a class="nav-item nav-link" href="/index_admin">Inicio</a>
+            {% if 'usuario' in session %} {% if session['rol'] == 'administrador' %}
+            <a class="nav-item nav-link" href="/admin/contratistas">Contratistas</a>
+            <a class="nav-item nav-link" href="/admin/usuarios">Usuarios</a>
+            {% endif %} {% if session['rol'] == 'administrador' or session['rol'] == 'usuario' %}
+            <a class="nav-item nav-link" href="/admin/calendario">Calendario</a>
+            {% endif %}
+            <li class="nav-item dropdown mx-4" style="right: 1rem">
+              <div class="text-white mt-2">{{ session['usuario'] }}</div>
+              <a
+                class="nav-link dropdown-toggle user-info"
+                href="#"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <i class="bi bi-person-circle" style="font-size: 32px; color: greenyellow"></i>
+              </a>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="/logout">Logout</a></li>
+              </ul>
+            </li>
+            {% else %}
+            <a class="nav-item nav-link" href="/admin/login">Login</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">{% block content %}{% endblock %}</div>
+
+    <footer class="footer mt-auto py-3 bg-light">
+      <div class="container">
+        <span class="text-muted">&copy; 2024 Admin Site. Todos los derechos reservados.</span>
+      </div>
+    </footer>
+
+    <!-- Bootstrap JS (offline) -->
+    <script src="{{ url_for('static', filename='bootstrap/js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap/js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}"></script>     
+    <!-- <script src="{{ url_for('static', filename='Datatables/js/dataTables.min.js') }}"></script> -->
+
+    <!-- Custom JS -->
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

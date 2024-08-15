@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Empleados</title>
+    <link href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='Datatables/css/dataTables.min.css') }}">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #employee-details {
+            display: none;
+        }
+
+        #employee-carousel .carousel-inner {
+            display: flex;
+            justify-content: center;
+        }
+
+        .card {
+            max-width: 300px;
+        }
+
+        .carousel-item img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Lista de Empleados</h1>
+        <div class="d-flex justify-content-between mb-3">
+            <div>
+                <button class="btn btn-primary"><i class="bi bi-plus"></i> Nuevo</button>
+                <button class="btn btn-danger"><i class="bi bi-trash"></i> Eliminar</button>
+                <button class="btn btn-secondary"><i class="bi bi-pencil"></i> Editar</button>
+            </div>
+        </div>
+        <table id="empleados" class="table table-striped table-bordered" style="width:100%">
+            <thead class="bg-success">
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Title</th>
+                    <th>Birth Date</th>
+                    <th>Hire Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>John</td>
+                    <td>Heart</td>
+                    <td>CEO</td>
+                    <td>03/16/1964</td>
+                    <td>01/15/1995</td>
+                    <td><button class="btn btn-info"><i class="bi bi-pencil"></i></button></td>
+                </tr>
+                <tr>
+                    <td>Jane</td>
+                    <td>Doe</td>
+                    <td>CTO</td>
+                    <td>07/22/1980</td>
+                    <td>02/10/2010</td>
+                    <td><button class="btn btn-info"><i class="bi bi-pencil"></i></button></td>
+                </tr>
+                <tr>
+                    <td>Mike</td>
+                    <td>Smith</td>
+                    <td>Manager</td>
+                    <td>05/15/1975</td>
+                    <td>03/30/2015</td>
+                    <td><button class="btn btn-info"><i class="bi bi-pencil"></i></button></td>
+                </tr>
+                <tr>
+                    <td>Sarah</td>
+                    <td>Johnson</td>
+                    <td>Developer</td>
+                    <td>09/10/1988</td>
+                    <td>06/01/2020</td>
+                    <td><button class="btn btn-info"><i class="bi bi-pencil"></i></button></td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="employee-details" class="mt-4">
+            <h3>Detalles del Empleado</h3>
+            <div class="d-flex">
+                <img src="https://unsplash.com/photos/JyVcAIUAcPM/download?force=true&w=640" alt="John Heart"
+                    class="img-thumbnail mr-3" style="width: 150px;">
+                    <div>
+                        <p><strong>Nombre:</strong> <span></span></p>
+                        <p><strong>Cargo:</strong> <span></span></p>
+                        <p><strong>Dirección:</strong> <span>351 S Hill St, Los Angeles, CA, 90013</span></p>
+                        <p><strong>Teléfono:</strong> <span>(213) 555-9208</span></p>
+                        <p><strong>Email:</strong> <span>jheart@dx-email.com</span></p>
+                    </div>
+            </div>
+            <div class="mt-4">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#evaluations">Evaluaciones</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#tasks">Tareas</a>
+                    </li>
+                </ul>
+                <div class="tab-content mt-3">
+                    <div id="evaluations" class="tab-pane fade show active">
+                        <ul>
+                            <li>John gana el premio CEO del año.</li>
+                            <li>Discusión sobre estrategias a largo plazo.</li>
+                            <li>Google Adwords y cómo debemos manejar SEO.</li>
+                        </ul>
+                    </div>
+                    <div id="tasks" class="tab-pane fade">
+                        <ul>
+                            <li>Revisión del presupuesto anual.</li>
+                            <li>Reunión con el equipo de marketing.</li>
+                            <li>Planificación de la próxima conferencia de la industria.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="employee-carousel" class="carousel slide mt-5 bg-secondary" data-ride="carousel">
+            <div class="carousel-inner">
+                <div class="carousel-item active">
+                    <div class="card">
+                        <img src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDJ8fHBlb3BsZXxlbnwwfHx8fDE2ODk3NTQ2MjU&ixlib=rb-4.0.3&q=80&w=1080"
+                            class="card-img-top" alt="Empleado 2">
+                        <div class="card-body">
+                            <h5 class="card-title">Empleado 2</h5>
+                            <p class="card-text">Descripción breve del empleado 2.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carousel-item">
+                    <div class="card">
+                        <img src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDN8fHBlb3BsZXxlbnwwfHx8fDE2ODk3NTQ3NzE&ixlib=rb-4.0.3&q=80&w=1080"
+                            class="card-img-top" alt="Empleado 4">
+                        <div class="card-body">
+                            <h5 class="card-title">Empleado 4</h5>
+                            <p class="card-text">Descripción breve del empleado 4.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carousel-item">
+                    <div class="card">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDExfHBlb3BsZXxlbnwwfHx8fDE2ODk3NTQ9MzU&ixlib=rb-4.0.3&q=80&w=1080"
+                            class="card-img-top" alt="Empleado 6">
+                        <div class="card-body">
+                            <h5 class="card-title">Empleado 6</h5>
+                            <p class="card-text">Descripción breve del empleado 6.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="carousel-item">
+                    <div class="card">
+                        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwzNjUyOXwwfDF8c2VhcmNofDl8fHBlb3BsZXxlbnwwfHx8fDE2ODk3NTQxMTM&ixlib=rb-4.0.3&q=80&w=1080"
+                            class="card-img-top" alt="Empleado 7">
+                        <div class="card-body">
+                            <h5 class="card-title">Empleado 7</h5>
+                            <p class="card-text">Descripción breve del empleado 7.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <a class="carousel-control-prev" href="#employee-carousel" role="button" data-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="sr-only">Anterior</span>
+            </a>
+            <a class="carousel-control-next" href="#employee-carousel" role="button" data-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="sr-only">Siguiente</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="{{ url_for('static', filename='bootstrap/js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap/js/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}"></script>     
+    <script src="{{ url_for('static', filename='Datatables/js/dataTables.min.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+            $('#empleados').DataTable({
+                "language": { "url": '{{ url_for("static", filename="Datatables/plug-ins/es-ES.json") }}' },
+                "paging": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "lengthChange": true,
+                "pageLength": 10,
+                "dom": 'Bfrtip',
+                "buttons": [
+                    'copy', 'csv', 'excel', 'pdf', 'print'
+                ],
+                "select": true
+            });
+
+            // Manejar el evento de clic en una fila
+            $('#empleados tbody').on('click', 'tr', function () {
+                var data = $(this).children("td").map(function () {
+                    
+                    return $(this).text();                    
+                }).get();
+                $('#employee-details').show();
+                $('#employee-details img').attr('src', 'https://unsplash.com/photos/JyVcAIUAcPM/download?force=true&w=640');
+                $('#employee-details').find('p:contains("Nombre:") span').text(data[0] + ' ' + data[1]);
+                $('#employee-details').find('p:contains("Cargo:") span').text(data[2]);
+                $('#employee-details').find('p:contains("Dirección:") span').text('351 S Hill St, Los Angeles, CA, 90013');
+                $('#employee-details').find('p:contains("Teléfono:") span').text('(213) 555-9208');
+                $('#employee-details').find('p:contains("Email:") span').text('jheart@dx-email.com');
+            });
+
+            $('.carousel').carousel({
+                interval: 2000
+            });
+        });
+    </script>
+</body>
+
+</html>
