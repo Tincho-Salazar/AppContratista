@@ -90,10 +90,14 @@
                             <button class="btn btn-outline-danger btn-sm eliminar-documento"
                                 data-id="{{ documento[0] }}"><i class="bi bi-trash"
                                     style="font-size: 1rem"></i></button>
-                            <button class="btn btn-outline-primary btn-sm subir-documento" data-bs-toggle="modal"
+                            <button class="btn btn-outline-secondary btn-sm subir-documento" data-bs-toggle="modal"
                                 data-bs-target="#modalUpload" data-id="123">
                                 <i class="bi bi-cloud-arrow-up" style="font-size: 1rem"></i>
                             </button>
+                            <button class="btn btn-outline-warning btn-sm ver-documento"
+                                onclick="verDocumentos('{{ contratista_id }}')" data-id="{{ documento[0] }}"><i
+                                    class="bi bi-eye" style="font-size: 1rem"></i></button>
+
                         </td>
                     </tr>
                     {% endfor %}
@@ -282,6 +286,11 @@
 <script src="{{ url_for('static', filename='Datatables/js/dataTables.min.js') }}"></script>
 <script src="{{ url_for('static', filename='Datatables/js/buttons.print.min.js') }}"></script>
 <script>
+    function verDocumentos(contratista_id) {
+        window.location.href = `/ver_documentos/${contratista_id}`;
+    }
+</script>
+<script>
     $(document).ready(function () {
         var contratistaId = '{{ contratista_id }}';
         var documentoId = null;
@@ -307,7 +316,13 @@
                 "resposive": true,
                 "dom": 'Bfrtip',
                 "buttons": ['csv', 'excel', 'pdf', 'copy', 'print', 'pageLength'],
-                "select": true
+                "select": true,
+                "autoWidth":false,
+                "columnDefs": [
+                { "width": "450px", "targets": 0 }, // Primera columna
+                { "width": "250px", "targets": 1 }, // Segunda columna
+                { "width": "300px", "targets": -1 } // Última columna
+                ]
             });
         });
 

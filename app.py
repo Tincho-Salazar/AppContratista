@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify, send_file, abort
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
@@ -648,7 +648,6 @@ def admin_documentos(contratista_id):
 
     return render_template('documentos.html', documentos_por_ano=documentos_por_ano, contratista_id=contratista_id,nombre_contratista=nombre_contratista)
 
-
 @app.route('/crear_documento/<int:contratista_id>', methods=['POST'])
 def crear_documento(contratista_id):
     data = request.form.to_dict()
@@ -817,6 +816,71 @@ def obtener_documento(documento_id):
     else:
         return jsonify({"error": "Documento no encontrado"}), 404  
 
+@app.route('/ver_documentos/<contratista_id>')
+def ver_documentos(contratista_id):
+    # Obtén la ruta base del contratista
+    base_path = os.path.join(app.config['UPLOAD_FOLDER'], contratista_id)
+    
+    # Lista de años disponibles
+    years = []
+    
+    # Diccionario para almacenar los documentos encontrados
+    documentos_por_año = {}
+    
+    # Recorrer los años disponibles en las carpetas
+    if os.path.exists(base_path):
+        for year in os.listdir(base_path):
+            year_path = os.path.join(base_path, year)
+            if os.path.isdir(year_path):
+                years.append(year)
+                documentos_por_año[year] = []
+                
+                # Recorrer los tipos de documentos
+                for document_type in os.listdir(year_path):
+                    document_path = os.path.join(year_path, document_type)
+                    if os.path.isdir(document_path):
+                        # Obtener los archivos dentro de cada tipo de documento
+                        documentos_por_año[year].append(document_type)
+    
+    # Lista de documentos permitidos (Extraídos del select en documentos.html)
+    documentos_permitidos = [
+        'pago_931', 'uatre', 'iva', 'pago_sepelio', 'f_931_afip', 'obra_social', 
+        'rc_sueldos', 'altas', 'bajas', 'art', 's_vida', 'poliza_vida', 'tk_pago_vida'
+    ]
+    
+    return render_template(
+        'ver_documentos.html', 
+        contratista_id=contratista_id,  # Se pasa el ID del contratista
+        years=years, 
+        documentos_por_año=documentos_por_año, 
+        documentos_permitidos=documentos_permitidos
+    )
+
+@app.route('/ver_documento/<contratista_id>/<year>/<documento>')
+def ver_documento(contratista_id, year, documento):
+    # Construir la ruta base
+    base_path = os.path.join(app.config['UPLOAD_FOLDER'], contratista_id, year, documento)
+    
+    # Verificar si es un directorio
+    if os.path.isdir(base_path):
+        # Listar los archivos dentro del directorio
+        files = os.listdir(base_path)
+        if files:
+            # Seleccionar el primer archivo del directorio
+            file_path = os.path.join(base_path, files[0])
+        else:
+            return "No se encontraron archivos en el directorio.", 404
+    else:
+        file_path = base_path  # Asumir que es un archivo
+
+    # Verificar si la ruta es un archivo válido
+    if os.path.isfile(file_path):
+        return send_file(file_path)
+    else:
+        return "Archivo no encontrado o la ruta es incorrecta.", 404
+
+
+
 # Funciones para subir archivos a carpeta
 # Función para verificar si el archivo tiene una extensión permitida
 def allowed_file(filename):
@@ -824,71 +888,51 @@ def allowed_file(filename):
 
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
+    # Verificar si el archivo está presente en la solicitud
     if 'archivo' not in request.files:
         flash('No se ha seleccionado ningún archivo', 'danger')
         return redirect(request.url)
     
     file = request.files['archivo']
     
+    # Verificar si se ha seleccionado un archivo
     if file.filename == '':
         flash('No se ha seleccionado ningún archivo', 'danger')
         return redirect(request.url)
 
+    # Verificar si el archivo tiene una extensión permitida
     if file and allowed_file(file.filename):
-        codigo_contratista = request.form['contratista_id']
-        document_type = request.form['tipo_documento']
-        upload_date = request.form['upload_date']
-
-        # Crear directorios basados en el tipo de documento y la fecha de subida
         try:
+            # Obtener los datos del formulario
+            codigo_contratista = request.form['contratista_id']
+            document_type = request.form['tipo_documento']
+            upload_date = request.form['upload_date']
+
+            # Asegurarse de que los campos obligatorios están presentes
+            if not codigo_contratista or not document_type or not upload_date:
+                flash('Datos del formulario incompletos', 'danger')
+                return redirect(request.url)
+
+            # Crear directorios basados en el código de contratista, año y tipo de documento
             year = datetime.strptime(upload_date, '%Y-%m-%d').strftime('%Y')
-            month = datetime.strptime(upload_date, '%Y-%m-%d').strftime('%m')
             save_path = os.path.join(app.config['UPLOAD_FOLDER'], codigo_contratista, year, document_type)
 
+            # Crear directorio si no existe
             os.makedirs(save_path, exist_ok=True)
+
+            # Guardar el archivo
             file.save(os.path.join(save_path, file.filename))
             
             flash('Archivo subido exitosamente', 'success')
             return redirect(url_for('index'))
+        
         except Exception as e:
             flash(f'Error al subir el archivo: {str(e)}', 'danger')
             return redirect(request.url)
-
-    # Imprime los datos del formulario para depuración
-    print(request.form)
-
-    if 'archivo' not in request.files:
-        flash('No se ha seleccionado ningún archivo', 'danger')
-        return redirect(request.url)
-    
-    file = request.files['archivo']
-    
-    if file.filename == '':
-        flash('No se ha seleccionado ningún archivo', 'danger')
+    else:
+        flash('Archivo no permitido o inválido', 'danger')
         return redirect(request.url)
 
-    # Asegúrate de que 'document_type' y 'upload_date' están presentes en el formulario
-    if 'document_type' not in request.form or 'upload_date' not in request.form:
-        flash('Datos del formulario incompletos', 'danger')
-        return redirect(request.url)
-
-    document_type = request.form['document_type']
-    upload_date = request.form['upload_date']
-
-    # Crear directorios basados en el tipo de documento y la fecha de subida
-    try:
-        year = datetime.strptime(upload_date, '%Y-%m-%d').strftime('%Y')
-        month = datetime.strptime(upload_date, '%Y-%m-%d').strftime('%m')
-        save_path = os.path.join(app.config['UPLOAD_FOLDER'], document_type, year, month)
-
-        os.makedirs(save_path, exist_ok=True)
-        file.save(os.path.join(save_path, file.filename))
-        
-        flash('Archivo subido exitosamente', 'success')
-        return redirect(url_for('index'))
-    except Exception as e:
-        flash(f'Error al subir el archivo: {str(e)}', 'danger')
-        return redirect(request.url)
 
 def obtener_valor(consulta,parametro):
     
