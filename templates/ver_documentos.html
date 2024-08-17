@@ -1,19 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Documentos por Contratista</title>
     <link href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet" />
     <style>
         .document-buttons {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
         }
+
         .document-buttons .btn {
-            flex: 1 1 calc(33.333% - 10px); /* Distribuir en filas de 3 botones */
+            flex: 1 1 calc(33.333% - 10px);
+            /* Distribuir en filas de 3 botones */
             margin-bottom: 10px;
         }
+
         .btn-inactive {
             background-color: #ccc;
             color: #666;
@@ -21,38 +26,77 @@
         }
     </style>
 </head>
+
 <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-secondary bg-gradient px-2">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <img src="{{ url_for('static', filename='png/logo.jpg') }}" alt="Logo" style="height: 56px" />
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDoc"
+                aria-controls="navbarNavDoc" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNavDoc">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-item nav-link" href="javascript:history.back()">Volver a la página anterior</a>
+
+                    {% if session['usuario'] %}
+                    <li class="nav-item dropdown mx-4" style="right: 1rem">
+                        <div class="text-white mt-2">{{ session['usuario'] }}</div>
+                        <a class="nav-link dropdown-toggle user-info" href="#" role="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="bi bi-person-circle" style="font-size: 32px; color: greenyellow"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <a class="nav-item nav-link" href="/admin/login">Login</a>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </nav>
     <div class="container mt-5">
         <h2>Documentos para el Contratista</h2>
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             {% for year in years %}
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link {% if loop.first %}active{% endif %}" id="year-{{ year }}-tab" data-bs-toggle="tab" data-bs-target="#year-{{ year }}" type="button" role="tab" aria-controls="year-{{ year }}" aria-selected="true">{{ year }}</button>
-                </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if loop.first %}active{% endif %}" id="year-{{ year }}-tab"
+                    data-bs-toggle="tab" data-bs-target="#year-{{ year }}" type="button" role="tab"
+                    aria-controls="year-{{ year }}" aria-selected="true">{{ year }}</button>
+            </li>
             {% endfor %}
         </ul>
         <div class="tab-content" id="myTabContent">
             {% for year in years %}
-                <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="year-{{ year }}" role="tabpanel" aria-labelledby="year-{{ year }}-tab">
-                    <div class="mt-3 document-buttons">
-                        {% for documento in documentos_permitidos %}
-                            {% if documento in documentos_por_año[year] %}
-                                {% set documento_url = url_for('ver_documento', contratista_id=contratista_id, year=year, documento=documento) %}
-                            {% else %}
-                                {% set documento_url = '#' %}
-                            {% endif %}
-                            <button type="button" class="btn {% if documento in documentos_por_año[year] %}btn-primary{% else %}btn-inactive{% endif %}" 
-                                    onclick="window.open('{{ documento_url }}', '_blank')">
-                                {{ documento }}
-                            </button>
-                        {% endfor %}
-                    </div>
+            <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="year-{{ year }}" role="tabpanel"
+                aria-labelledby="year-{{ year }}-tab">
+                <div class="mt-3 document-buttons">
+                    {% for documento in documentos_permitidos %}
+                    {% if documento in documentos_por_año[year] %}
+                    {% set documento_url = url_for('ver_documento', contratista_id=contratista_id, year=year,
+                    documento=documento) %}
+                    {% else %}
+                    {% set documento_url = '#' %}
+                    {% endif %}
+                    <button type="button"
+                        class="btn {% if documento in documentos_por_año[year] %}btn-primary{% else %}btn-inactive{% endif %}"
+                        onclick="window.open('{{ documento_url }}', '_blank')">
+                        {{ documento }}
+                    </button>
+                    {% endfor %}
                 </div>
+            </div>
             {% endfor %}
         </div>
     </div>
     <script src="{{ url_for('static', filename='bootstrap/js/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='bootstrap/js/popper.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}"></script>  
+    <script src="{{ url_for('static', filename='bootstrap/js/bootstrap.min.js') }}"></script>
 </body>
+
 </html>

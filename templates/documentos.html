@@ -1,5 +1,21 @@
 {% extends 'base.html' %}
 
+{% block style %}
+<style>
+    /* Estilo para las filas seleccionadas */
+    table tbody tr.selected {
+        background-color: lightgreen !important;
+        /* Fondo verde claro */
+        color: white !important;
+        /* Color de texto blanco */
+    }
+
+    /* Transición suave para el cambio de fondo */
+    .table tbody tr {
+        transition: background-color 0.3s ease;
+    }
+</style>
+{% endblock%}
 {% block content %}
 
 <!-- Plantila de toast  -->
@@ -65,7 +81,7 @@
                 <tbody>
                     {% for documento in documentos %}
                     <tr>
-                        <td>{{ documento[2] }}</td>
+                        <td style="white-space: nowrap;">{{ documento[2] }}</td>
                         <td>{{ documento[3] | format_period }}</td>
                         <td>{{ 'Sí' if documento[4] else 'No' }}</td>
                         <td>{{ 'Sí' if documento[5] else 'No' }}</td>
@@ -83,7 +99,7 @@
                         <td>{{ 'Sí' if documento[17] else 'No' }}</td>
                         <td>{{ documento[18] }}</td>
                         <td>{{ documento[19] }}</td>
-                        <td>
+                        <td style="display: flex;">
                             <button class="btn btn-outline-success btn-sm editar-documento" data-id="{{ documento[0] }}"
                                 data-bs-toggle="modal" data-bs-target="#modalDocumento"><i class="bi bi-pencil"
                                     style="font-size: 1rem"></i></button>
@@ -294,7 +310,7 @@
     $(document).ready(function () {
         var contratistaId = '{{ contratista_id }}';
         var documentoId = null;
-        // Selecciona el input basado en su contenedor y atributos
+        // var tableId = $('table[id^="documentos-"]').attr('id');
 
         //configuracion datatable
         $('#myTabContent table').each(function () {
@@ -317,14 +333,10 @@
                 "dom": 'Bfrtip',
                 "buttons": ['csv', 'excel', 'pdf', 'copy', 'print', 'pageLength'],
                 "select": true,
-                "autoWidth":false,
-                "columnDefs": [
-                { "width": "450px", "targets": 0 }, // Primera columna
-                { "width": "250px", "targets": 1 }, // Segunda columna
-                { "width": "300px", "targets": -1 } // Última columna
-                ]
+                "autoWidth": false
             });
         });
+        
 
         // Mostrar el modal para editar documento
         $('.editar-documento').click(function () {
