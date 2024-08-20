@@ -253,10 +253,100 @@ def eliminar_usuario(id):
 
 
 # Ruta de Calendario
-@app.route('/admin/calendario')
+
+@app.route('/calendario')
 @login_required
-def admin_calendario():
-    return render_template('admin_calendario.html')
+def calendario():
+    return render_template('calendario.html')
+
+@app.route('/obtener_eventos')
+@login_required
+def obtener_eventos():
+    start = request.args.get('start')
+    end = request.args.get('end')
+    
+    sql = """
+    SELECT c.id, c.contratista_id, cont.nombre, c.fecha_evento, c.descripcion_evento, c.tipo_evento 
+    FROM calendario c
+    JOIN contratistas cont ON c.contratista_id = cont.id
+    WHERE c.fecha_evento BETWEEN %s AND %s
+    """
+    mycursor.execute(sql, (start, end))
+    eventos = mycursor.fetchall()
+    
+    eventos_formateados = []
+    for evento in eventos:
+        eventos_formateados.append({
+            'id': evento[0],
+            'title': f"{evento[2]}: {evento[5]}",  # Nombre del contratista + tipo de evento
+            'start': evento[3].isoformat(),
+            'extendedProps': {
+                'contratista_id': evento[1],  # Agregamos contratista_id
+                'contratista_nombre': evento[2],  # Agregamos contratista_nombre
+                'description': evento[4],
+                'type': evento[5]
+            }
+        })
+    
+    return jsonify(eventos_formateados)
+
+
+@app.route('/crear_evento', methods=['POST'])
+@login_required
+def crear_evento():
+    if session['rol'] != 'administrador':
+        return jsonify({'error': 'No tienes permisos para realizar esta acción'}), 403
+    
+    data = request.json
+    sql = """
+    INSERT INTO calendario (contratista_id, fecha_evento, descripcion_evento, tipo_evento) 
+    VALUES (%s, %s, %s, %s)
+    """
+    valores = (data['contratista_id'], data['fecha_evento'], data['descripcion_evento'], data['tipo_evento'])
+    
+    mycursor.execute(sql, valores)
+    mydb.commit()
+    
+    return jsonify({'message': 'Evento creado correctamente', 'id': mycursor.lastrowid})
+
+@app.route('/actualizar_evento/<int:evento_id>', methods=['PUT'])
+@login_required
+def actualizar_evento(evento_id):
+    if session['rol'] != 'administrador':
+        return jsonify({'error': 'No tienes permisos para realizar esta acción'}), 403
+    
+    data = request.json
+    sql = """
+    UPDATE calendario 
+    SET contratista_id = %s, fecha_evento = %s, descripcion_evento = %s, tipo_evento = %s 
+    WHERE id = %s
+    """
+    valores = (data['contratista_id'], data['fecha_evento'], data['descripcion_evento'], data['tipo_evento'], evento_id)
+    
+    mycursor.execute(sql, valores)
+    mydb.commit()
+    
+    return jsonify({'message': 'Evento actualizado correctamente'})
+
+@app.route('/eliminar_evento/<int:evento_id>', methods=['DELETE'])
+@login_required
+def eliminar_evento(evento_id):
+    if session['rol'] != 'administrador':
+        return jsonify({'error': 'No tienes permisos para realizar esta acción'}), 403
+    
+    sql = "DELETE FROM calendario WHERE id = %s"
+    mycursor.execute(sql, (evento_id,))
+    mydb.commit()
+    
+    return jsonify({'message': 'Evento eliminado correctamente'})
+
+@app.route('/obtener_contratistas')
+@login_required
+def obtener_contratistas():
+    sql = "SELECT id, nombre FROM contratistas ORDER BY nombre"
+    mycursor.execute(sql)
+    contratistas = mycursor.fetchall()
+    return jsonify([{'id': c[0], 'nombre': c[1]} for c in contratistas])
 
 # Ruta de Login
 @app.route('/admin/login', methods=['GET', 'POST'])

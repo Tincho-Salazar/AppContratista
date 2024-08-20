@@ -9,9 +9,11 @@
   <!-- Bootstrap CSS (offline) -->
   <link href="{{ url_for('static', filename='bootstrap/css/bootstrap.min.css') }}" rel="stylesheet" />
   <link href="{{ url_for('static', filename='bootstrap-icons/font/bootstrap-icons.min.css') }}" rel="stylesheet" />
+
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='Datatables/css/dataTables.css') }}">
-
+<!-- fullcalendar CSS -->
+  <link href="{{ url_for('static', filename='fullcalendar/css/main.min.css') }}" rel="stylesheet" />
   <!-- Custom CSS -->
   <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" />
 
@@ -174,7 +176,7 @@
           <a class="nav-item nav-link" href="/admin/contratistas">Contratistas</a>
           <a class="nav-item nav-link" href="/admin/usuarios">Usuarios</a>
           {% endif %} {% if session['rol'] == 'administrador' or session['rol'] == 'usuario' %}
-          <a class="nav-item nav-link" href="/admin/calendario">Calendario</a>
+          <a class="nav-item nav-link" href="/calendario">Calendario</a>
           {% endif %}
           <li class="nav-item dropdown mx-4" style="right: 1rem">
             <div class="text-white mt-2">{{ session['usuario'] }}</div>
