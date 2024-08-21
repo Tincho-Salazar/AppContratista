@@ -1,7 +1,36 @@
 {% extends 'base.html' %}
 
+{% block style %}
+<style>
+    #calendario {
+        margin: 0 auto;
+        width: 75%;
+        padding: 1.5em;
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+        background-color: beige;
+    }
+
+    .fc-button.fc-button-primary,
+    .fc-dayGridMonth-button.fc-button.fc-button-primary.fc-button-active,
+    .fc-today-button.fc-button.fc-button-primary {
+        background-color: #0d6efd;
+    }
+
+    .fc-daygrid-day-frame.fc-scrollgrid-sync-inner:hover {
+        border: 1px solid black;
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .fc-event-title.fc-sticky.completed {
+        background-color: #d4edda; /* Color de fondo para eventos completados */
+        color: #155724; /* Color del texto para eventos completados */
+        text-decoration: line-through; /* Texto tachado para eventos completados */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<!-- Plantilla de toast  -->
 <div id="toastContainer" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
 <div id="toastTemplate" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true"
@@ -16,7 +45,7 @@
 </div>
 
 <div class="container mt-4">
-    <h2>Calendario de Eventos</h2>
+    <h2 class="text-center">Calendario de Eventos</h2>
     <div id="calendario"></div>
 </div>
 
@@ -49,11 +78,35 @@
                         <label for="tipo" class="form-label">Tipo de Evento</label>
                         <input type="text" class="form-control" id="tipo" required>
                     </div>
+                    <div class="mb-3">
+                        <label for="completado" class="form-label">Tarea Completada</label>
+                        <input type="checkbox" id="completado">
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-danger" id="eliminarEvento">Eliminar</button>
                 <button type="button" class="btn btn-primary" id="guardarEvento">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación de evento -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar esta cita de la Agenda?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteButton">Eliminar</button>
             </div>
         </div>
     </div>
@@ -61,11 +114,8 @@
 {% endblock %}
 
 {% block scripts %}
-
+<script src="{{ url_for('static', filename='/js/toast.js') }}"></script>
 <script src="{{ url_for('static', filename='fullcalendar/js/main.min.js') }}"></script>
-<!-- <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.2/main.min.js"></script> -->
-<!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
 <script>
     $(document).ready(function () {
         var calendarEl = document.getElementById('calendario');
@@ -77,24 +127,34 @@
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
+            buttonText: {
+                today: 'Hoy',
+                month: 'Mes',
+                week: 'Semana',
+                day: 'Día'
+            },
             events: '/obtener_eventos',
-            {% if session['rol'] == 'administrador' %}
-                editable: true,
-                selectable: true,
-                select: function (info) {
-                    abrirModal(info.start);
-                },
-                eventClick: function (info) {
-                    editarEvento(info.event);
+            eventDidMount: function(info) {
+                if (info.event.extendedProps.completed) {
+                    info.el.classList.add('completed');
                 }
+            },
+            {% if session['rol'] == 'administrador' %}
+            editable: true,
+            selectable: true,
+            select: function (info) {
+                abrirModal(info.start);
+            },
+            eventClick: function (info) {
+                editarEvento(info.event);
+            }
             {% endif %}
         });
         calendar.render();
 
-    {% if session['rol'] == 'administrador' %}
+        {% if session['rol'] == 'administrador' %}
         // Cargar contratistas al inicio
         cargarContratistas();
-
         function cargarContratistas() {
             $.ajax({
                 url: '/obtener_contratistas',
@@ -124,26 +184,23 @@
 
         function editarEvento(evento) {
             $('#eventoId').val(evento.id);
-            // Obtener el id del contratista del evento
             const contratistaId = evento.extendedProps.contratista_id;
-
-            // Seleccionar el contratista correcto en el <select>
             $('#contratista').val(contratistaId);
-
             $('#fecha').val(evento.start.toISOString().split('T')[0]);
             $('#descripcion').val(evento.extendedProps.description);
             $('#tipo').val(evento.extendedProps.type);
+            $('#completado').prop('checked', evento.extendedProps.completed);
             $('#modalTitle').text('Editar Evento');
             $('#eventoModal').modal('show');
         }
-
 
         $('#guardarEvento').click(function () {
             var evento = {
                 contratista_id: $('#contratista').val(),
                 fecha_evento: $('#fecha').val(),
                 descripcion_evento: $('#descripcion').val(),
-                tipo_evento: $('#tipo').val()
+                tipo_evento: $('#tipo').val(),
+                completed: $('#completado').is(':checked')
             };
             var eventoId = $('#eventoId').val();
             var url = eventoId ? '/actualizar_evento/' + eventoId : '/crear_evento';
@@ -166,7 +223,35 @@
             });
         });
 
-    {% endif %}
+        $('#eliminarEvento').click(function () {
+            var eventoId = $('#eventoId').val();
+            if (eventoId) {
+                // Mostrar modal de confirmación y pasar el ID del evento
+                $('#confirmDeleteModal').data('evento-id', eventoId).modal('show');
+            }
+        });
+
+        $('#confirmDeleteButton').click(function () {
+            var eventoId = $('#confirmDeleteModal').data('evento-id');
+            if (eventoId) {
+                $.ajax({
+                    url: '/eliminar_evento/' + eventoId,
+                    type: 'DELETE',
+                    success: function (response) {
+                        var bsToast = showToast(response.message, 'success');
+                        bsToast._element.addEventListener('hidden.bs.toast', function () {
+                            location.reload();
+                        });
+                    },
+                    error: function (xhr) {
+                        var response = xhr.responseJSON;
+                        showToast(response.message || 'Ha ocurrido un error', 'danger');
+                    }
+                });
+                $('#confirmDeleteModal').modal('hide');
+            }
+        });
+        {% endif %}
     });
 </script>
 {% endblock %}

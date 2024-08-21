@@ -266,7 +266,7 @@ def obtener_eventos():
     end = request.args.get('end')
     
     sql = """
-    SELECT c.id, c.contratista_id, cont.nombre, c.fecha_evento, c.descripcion_evento, c.tipo_evento 
+    SELECT c.id, c.contratista_id, cont.nombre, c.fecha_evento, c.descripcion_evento, c.tipo_evento,c.completado 
     FROM calendario c
     JOIN contratistas cont ON c.contratista_id = cont.id
     WHERE c.fecha_evento BETWEEN %s AND %s
@@ -277,16 +277,19 @@ def obtener_eventos():
     eventos_formateados = []
     for evento in eventos:
         eventos_formateados.append({
-            'id': evento[0],
-            'title': f"{evento[2]}: {evento[5]}",  # Nombre del contratista + tipo de evento
-            'start': evento[3].isoformat(),
-            'extendedProps': {
-                'contratista_id': evento[1],  # Agregamos contratista_id
-                'contratista_nombre': evento[2],  # Agregamos contratista_nombre
-                'description': evento[4],
-                'type': evento[5]
-            }
-        })
+        'id': evento[0],
+        'title': f"{evento[2]}: {evento[5]}",
+        'start': evento[3].isoformat(),
+        'extendedProps': {
+            'contratista_id': evento[1],
+            'contratista_nombre': evento[2],
+            'description': evento[4],
+            'type': evento[5],
+            'completed': evento[6]  # Asegúrate de que este campo esté en tu consulta SQL
+        },
+        'classNames': ['completed'] if evento[6] else []  # Agrega la clase CSS si está completado
+    })
+
     
     return jsonify(eventos_formateados)
 
@@ -299,10 +302,11 @@ def crear_evento():
     
     data = request.json
     sql = """
-    INSERT INTO calendario (contratista_id, fecha_evento, descripcion_evento, tipo_evento) 
-    VALUES (%s, %s, %s, %s)
+    INSERT INTO calendario (contratista_id, fecha_evento, descripcion_evento, tipo_evento, completado) 
+    VALUES (%s, %s, %s, %s, %s)
     """
-    valores = (data['contratista_id'], data['fecha_evento'], data['descripcion_evento'], data['tipo_evento'])
+    valores = (data['contratista_id'], data['fecha_evento'], data['descripcion_evento'], data['tipo_evento'], data['completed'])
+
     
     mycursor.execute(sql, valores)
     mydb.commit()
@@ -318,11 +322,11 @@ def actualizar_evento(evento_id):
     data = request.json
     sql = """
     UPDATE calendario 
-    SET contratista_id = %s, fecha_evento = %s, descripcion_evento = %s, tipo_evento = %s 
+    SET contratista_id = %s, fecha_evento = %s, descripcion_evento = %s, tipo_evento = %s, completado = %s 
     WHERE id = %s
     """
-    valores = (data['contratista_id'], data['fecha_evento'], data['descripcion_evento'], data['tipo_evento'], evento_id)
-    
+    valores = (data['contratista_id'], data['fecha_evento'], data['descripcion_evento'], data['tipo_evento'], data['completed'], evento_id)
+
     mycursor.execute(sql, valores)
     mydb.commit()
     
