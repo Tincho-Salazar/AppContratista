@@ -18,7 +18,6 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limitar a 16 MB
 # Global database connection variables
-# Variables globales para conexión y cursor
 mydb = None
 mycursor = None
 
@@ -29,8 +28,7 @@ def connect_to_db():
             host="192.168.30.216",
             user="root",
             password="toor",
-            database="contratistas",
-            autocommit=True  # Para evitar cierres por inactividad
+            database="contratistas"
         )
         if connection.is_connected():
             print("Conexión exitosa a la base de datos")
@@ -39,7 +37,6 @@ def connect_to_db():
         print(f"Error al conectar a la base de datos: {e}")
         return None
 
-# Función para reconectar con varios intentos
 def connect_with_retry(retries=5, delay=5):
     for _ in range(retries):
         connection = connect_to_db()
@@ -50,27 +47,17 @@ def connect_with_retry(retries=5, delay=5):
     print("No se pudo conectar a la base de datos después de varios intentos.")
     return None
 
-# Función para mantener la conexión activa (Keep-Alive)
-def keep_connection_alive(connection, interval=300):
-    while True:
-        try:
-            # Ping para mantener la conexión viva
-            connection.ping(reconnect=True, attempts=3, delay=5)
-            print("Conexión verificada y activa.")
-        except mysql.connector.Error as e:
-            print(f"Error en keep-alive: {e}")
-            # Intentar reconectar si el ping falla
-            connection = connect_with_retry()
-        time.sleep(interval)
-
-# Función para ejecutar consultas SQL con manejo de errores
 def execute_query(connection, query, params=None, fetchone=False, commit=False):
+
     try:
         cursor = connection.cursor()
         cursor.execute(query, params)
         if commit:
             connection.commit()
-        result = cursor.fetchone() if fetchone else cursor.fetchall()
+        if fetchone:
+            result = cursor.fetchone()
+        else:
+            result = cursor.fetchall()
         cursor.close()
         return result
     except mysql.connector.Error as err:
@@ -78,15 +65,6 @@ def execute_query(connection, query, params=None, fetchone=False, commit=False):
         if commit:
             connection.rollback()
         return None
-
-# Establecer conexión y lanzar el keep-alive en un hilo separado si es necesario
-mydb = connect_with_retry()
-if mydb:
-    import threading
-    # Inicia un hilo para el keep-alive
-    keep_alive_thread = threading.Thread(target=keep_connection_alive, args=(mydb,))
-    keep_alive_thread.daemon = True  # Para que no bloquee la salida del programa
-    keep_alive_thread.start()
 
 # Funciones  para manejar datos la base de datos
 
