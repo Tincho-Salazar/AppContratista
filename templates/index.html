@@ -1,11 +1,31 @@
 {% extends 'base.html' %}
+{% block style%}
+<style>
+  #toast-container .toast {
+    max-width: 100%;
+    /* Limita el ancho del toast al 100% del contenedor */
+    word-wrap: break-word;
+    /* Permite que las palabras largas se ajusten y no desborden */
+    white-space: normal;
+    /* Asegura que el texto se ajuste en varias líneas si es necesario */
+  }
+
+  #toast-container {
+    width: 100%;
+    /* Para asegurarte de que el contenedor ocupe el ancho de la pantalla */
+  }
+
+  .toast-body {
+    overflow-wrap: break-word;
+    /* Asegura que las palabras largas se dividan para evitar desbordamiento */
+  }
+</style>
+{% endblock%}
 
 {% block content %}
-
 <div class="marco p-4 shadow-sm rounded">
   <div class="row mb-3 d-flex justify-content-end">
     <h2 class="text-center">Contratistas Registrados</h2>
-    <!-- Input de búsqueda con botón -->
     <div class="col-auto">
       <div class="input-group">
         <input type="text" id="searchInput" class="form-control" placeholder="Buscar contratista..."
@@ -16,68 +36,88 @@
       </div>
     </div>
   </div>
-  <div class="row">
-    {% for contratista in contratistas %}
-    <div class="col-12 col-sm-6 col-md-4 col-lg-4 mb-4">
-      <div class="card shadow-md custom-rounded-card h-100 {% if not contratista[3] %}border-red{% else %}hover-border{% endif %}">
-        <div class="row g-0">
-          <div class="col-4">
-            <img src="{{ url_for('static', filename='png/avatar.png') }}" class="img-fluid" alt="avatar" />
-          </div>
-          <div class="col-8">
-            <div class="card-body d-flex flex-column justify-content-between h-100">
-              <div>
-                <h5 class="card-title">{{ contratista[1] }}</h5>
-                <p class="card-text">{{ contratista[2] }}</p>
-              </div>
-              <div class="card-footer d-flex justify-content-between">
-                {% if session['rol'] == 'administrador' %}
-                <a href="{{ url_for('admin_empleados', contratista_id=contratista[0]) }}"
-                  class="btn btn-outline-warning btn-icon custom-btn position-relative">
-                  <i class="bi bi-people" style="font-size: 1.25rem" data-bs-toggle="tooltip" title="Empleados"></i>
-                  <span class="badge rounded-pill bg-danger custom-badge">{{ contratista[3] }}</span>
-                </a>
-                <a href="{{ url_for('admin_vehiculos', contratista_id=contratista[0]) }}"
-                  class="btn btn-outline-success btn-icon custom-btn position-relative">
-                  <i class="bi bi-truck" style="font-size: 1.25rem" data-bs-toggle="tooltip" title="Vehículos"></i>
-                  <span class="badge rounded-pill bg-danger custom-badge">{{ contratista[4] }}</span>
-                </a>
-                <a href="{{ url_for('admin_documentos', contratista_id=contratista[0]) }}"
-                  class="btn btn-outline-primary btn-icon custom-btn position-relative">
-                  <i class="bi bi-file-earmark-text" style="font-size: 1.25rem" data-bs-toggle="tooltip"
-                    title="Documentos"></i>
-                  <span class="badge rounded-pill bg-danger custom-badge">{{ contratista[5] }}</span>
-                </a>
-                {% endif %}
-              </div>
-            </div>
-          </div>
+
+  <!-- Contenedor para los toasts -->
+  <div id="toast-container" class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    {% if toasts %}
+    {% for toast in toasts %}
+    <div class="toast align-items-center text-bg-{{ toast.type }} border-0" role="alert" aria-live="assertive"
+      data-bs-autohide="false" aria-atomic="true" style="max-width: 100%; width: auto; max-width: calc(100% - 1rem);">
+      <div class="d-flex">
+        <div class="toast-body">
+          <strong>{{ toast.title }}</strong><br>
+          {{ toast.message|replace('\n', '<br>')|safe }} Verifique el calendario
         </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Close"></button>
       </div>
     </div>
     {% endfor %}
+    {% endif %}
   </div>
 
-  <!-- Paginador y selector de tamaño de página -->
-  <div class="d-flex justify-content-between align-items-center mt-3">
-    <nav aria-label="Page navigation">
-      <ul class="pagination mb-0">
-        <li class="page-item {% if current_page == 1 %}disabled{% endif %}">
-          <a class="page-link"
-            href="?page={{ current_page - 1 }}&page_size={{ page_size }}&search={{ search }}">Prev</a>
-        </li>
-        {% for page_num in range(1, total_pages + 1) %}
-        <li class="page-item {% if current_page == page_num %}active{% endif %}">
-          <a class="page-link" href="?page={{ page_num }}&page_size={{ page_size }}&search={{ search }}">{{ page_num
-            }}</a>
-        </li>
-        {% endfor %}
-        <li class="page-item {% if current_page == total_pages %}disabled{% endif %}">
-          <a class="page-link" href="?page={{ current_page + 1 }}&page_size={{ page_size }}&search={{ search }}">Sig</a>
-        </li>
-      </ul>
-    </nav>
-    <div class="form-group d-flex align-items-center mb-0">
+  <!-- Nav Tabs -->
+  <ul class="nav nav-tabs" id="categoryTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <a class="nav-link active" id="vivero-tab" data-bs-toggle="tab" href="#vivero" role="tab" aria-controls="vivero"
+        aria-selected="true" onclick="loadCategory('VIVERO')">Vivero</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link" id="forestal-tab" data-bs-toggle="tab" href="#forestal" role="tab" aria-controls="forestal"
+        aria-selected="false" onclick="loadCategory('FORESTAL')">Forestal</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link" id="industria-tab" data-bs-toggle="tab" href="#industria" role="tab" aria-controls="industria"
+        aria-selected="false" onclick="loadCategory('INDUSTRIA')">Industria</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link" id="transportista-tab" data-bs-toggle="tab" href="#transportista" role="tab"
+        aria-controls="transportista" aria-selected="false" onclick="loadCategory('TRANSPORTISTA')">Transportista</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link" id="yerba-tab" data-bs-toggle="tab" href="#yerba" role="tab" aria-controls="yerba"
+        aria-selected="false" onclick="loadCategory('YERBA')">Yerba</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link" id="secadero-tab" data-bs-toggle="tab" href="#secadero" role="tab" aria-controls="secadero"
+        aria-selected="false" onclick="loadCategory('SECADERO')">Secadero</a>
+    </li>
+    <li class="nav-item" role="presentation">
+      <a class="nav-link" id="cerfoar-tab" data-bs-toggle="tab" href="#cerfoar" role="tab" aria-controls="cerfoar"
+        aria-selected="false" onclick="loadCategory('CERFOAR')">Cerfoar</a>
+    </li>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content" id="categoryTabContent">
+    <div class="tab-pane fade show active" id="vivero" role="tabpanel" aria-labelledby="vivero-tab">
+      <div id="contratistasContainerVIVERO">
+        {% include 'contratistas_cards.html' %}
+      </div>
+    </div>
+    <div class="tab-pane fade" id="forestal" role="tabpanel" aria-labelledby="forestal-tab">
+      <div id="contratistasContainerFORESTAL"></div>
+    </div>
+    <div class="tab-pane fade" id="industria" role="tabpanel" aria-labelledby="industria-tab">
+      <div id="contratistasContainerINDUSTRIA"></div>
+    </div>
+    <div class="tab-pane fade" id="transportista" role="tabpanel" aria-labelledby="transportista-tab">
+      <div id="contratistasContainerTRANSPORTISTA"></div>
+    </div>
+    <div class="tab-pane fade" id="yerba" role="tabpanel" aria-labelledby="yerba-tab">
+      <div id="contratistasContainerYERBA"></div>
+    </div>
+    <div class="tab-pane fade" id="secadero" role="tabpanel" aria-labelledby="secadero-tab">
+      <div id="contratistasContainerSECADERO"></div>
+    </div>
+    <div class="tab-pane fade" id="cerfoar" role="tabpanel" aria-labelledby="cerfoar-tab">
+      <div id="contratistasContainerCERFOAR"></div>
+    </div>
+  </div>
+
+  <!-- Selector de tamaño de página en index.html -->
+  <div class="d-flex justify-content-end align-items-center mt-3">
+    <div class="d-flex align-items-center">
       <label for="pageSize" class="me-2 mb-0">Items por Página:</label>
       <select class="form-select" id="pageSize" style="width: auto;" onchange="changePageSize(this.value)">
         <option value="3" {% if page_size==3 %}selected{% endif %}>3</option>
@@ -88,26 +128,73 @@
     </div>
   </div>
 </div>
-
-
-<script>
-  function changePageSize(size) {
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('page_size', size);
-    urlParams.set('page', 1); // Reset to the first page
-    window.location.search = urlParams.toString();
-  }
-
-  function executeSearch() {
-    const searchInput = document.getElementById('searchInput').value;
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.set('search', searchInput);
-    urlParams.set('page', 1); // Reset to the first page
-    window.location.search = urlParams.toString();
-  }
-</script>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/toast.js') }}"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Obtener el tamaño de página guardado en localStorage o usar 6 como predeterminado
+    const savedPageSize = localStorage.getItem('pageSize') || '6';
+    document.getElementById('pageSize').value = savedPageSize;
+
+    // Cargar el contenido del primer tab usando el tamaño de página guardado
+    const initialCategory = document.querySelector('.nav-link.active').textContent.trim().toUpperCase();
+    loadCategory(initialCategory, 1, savedPageSize);
+
+    // Mostrar los toasts
+    const toastContainer = document.getElementById('toast-container');
+    const toasts = toastContainer.getElementsByClassName('toast');
+    Array.from(toasts).forEach(toast => {
+      new bootstrap.Toast(toast).show();
+    });
+  });
+
+  function loadCategory(category, page = 1, pageSize = null) {
+    const size = pageSize || localStorage.getItem('pageSize') || '6';
+    const url = new URL(window.location.href);
+    url.searchParams.set('categoria', category);
+    url.searchParams.set('page', page);
+    url.searchParams.set('page_size', size);
+    fetch(url, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+      .then(response => response.text())
+      .then(html => {
+        document.querySelector(`#contratistasContainer${category}`).innerHTML = html;
+      })
+      .catch(error => console.error('Error:', error));
+  }
+
+  function loadPage(page) {
+    const category = document.querySelector('.nav-link.active').textContent.trim().toUpperCase();
+    const pageSize = document.getElementById('pageSize').value;
+    loadCategory(category, page, pageSize);
+  }
+
+  function changePageSize(size) {
+    localStorage.setItem('pageSize', size);
+    const category = document.querySelector('.nav-link.active').textContent.trim().toUpperCase();
+    loadCategory(category, 1, size);
+  }
+
+  function executeSearch() {
+    const searchInput = document.getElementById('searchInput').value;
+    const category = document.querySelector('.nav-link.active').textContent.trim().toUpperCase();
+    const pageSize = document.getElementById('pageSize').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('search', searchInput);
+    url.searchParams.set('categoria', category);
+    url.searchParams.set('page', 1);
+    url.searchParams.set('page_size', pageSize);
+    fetch(url, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+      .then(response => response.text())
+      .then(html => {
+        document.querySelector(`#contratistasContainer${category}`).innerHTML = html;
+      })
+      .catch(error => console.error('Error:', error));
+  }
+</script>
 {% endblock %}

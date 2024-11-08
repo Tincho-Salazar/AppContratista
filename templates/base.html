@@ -12,7 +12,7 @@
 
   <!-- DataTables CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='Datatables/css/dataTables.css') }}">
-<!-- fullcalendar CSS -->
+  <!-- fullcalendar CSS -->
   <link href="{{ url_for('static', filename='fullcalendar/css/main.min.css') }}" rel="stylesheet" />
   <!-- Custom CSS -->
   <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" />
@@ -26,7 +26,7 @@
     body {
       display: flex;
       flex-direction: column;
-      background-color: #f8f9fa;
+      background-color: #edf5e3;
     }
 
     .container {
@@ -155,6 +155,35 @@
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     }
 
+    /* Deshabilitar los bordes predeterminados */
+    input,
+    textarea,
+    select {
+      border: none;
+      outline: none;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      box-shadow: inset 0 0 0 1px #ced4da;
+      /* Borde fino inicial */
+      transition: all 0.3s ease-in-out;
+    }
+
+    /* Cambiar el borde y agregar sombra al hacer foco */
+    input:focus,
+    textarea:focus,
+    select:focus {
+      box-shadow: 0 0 5px rgba(100, 150, 250, 0.7), inset 0 0 0 1px rgba(100, 150, 250, 0.7);
+      /* Sombra agradable y borde en azul claro */
+    }
+
+    /* Añadir un efecto de sombra al pasar el ratón */
+    input:hover,
+    textarea:hover,
+    select:hover {
+      box-shadow: 0 0 5px rgba(100, 150, 250, 0.5), inset 0 0 0 1px rgba(100, 150, 250, 0.5);
+      /* Efecto al pasar el ratón */
+    }
   </style>
   {% block style %}{% endblock %}
 </head>
@@ -200,7 +229,7 @@
 
   <footer class="footer mt-auto py-3 bg-light">
     <div class="container">
-      <span class="text-muted">&copy; 2024 Admin Site. Todos los derechos reservados.</span>
+      <span class="text-muted">&copy; 2024 Sistemas Pindo. Todos los derechos reservados.</span>
     </div>
   </footer>
 

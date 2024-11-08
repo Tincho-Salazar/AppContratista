@@ -54,20 +54,31 @@ def connect_with_retry(retries=5, delay=5):
 
 # Función para mantener la conexión activa (Keep-Alive)
 def keep_connection_alive(connection, interval=60):
+    global mydb  # Hacer referencia a la variable global mydb
     while True:
         try:
-            # Ping para mantener la conexión viva
-            connection.ping(reconnect=True, attempts=3, delay=5)
-            print("Conexión verificada y activa.")
+            # Verificar conexión actual
+            if not connection.is_connected():
+                print("Conexión perdida. Intentando reconectar...")
+                mydb = connect_with_retry()  # Reintentar conexión
+                connection = mydb
+            else:
+                # Realizar ping para mantener la conexión activa
+                connection.ping(reconnect=True, attempts=3, delay=5)
+                print("Conexión verificada y activa.")
         except mysql.connector.Error as e:
             print(f"Error en keep-alive: {e}")
-            # Intentar reconectar si el ping falla
-            connection = connect_with_retry()
+            mydb = connect_with_retry()
+            connection = mydb
         time.sleep(interval)
 
 # Función para ejecutar consultas SQL con manejo de errores
 def execute_query(connection, query, params=None, fetchone=False, commit=False):
     try:
+        # Verificar si la conexión está activa
+        if not connection.is_connected():
+            connection = connect_with_retry()
+
         cursor = connection.cursor()
         cursor.execute(query, params)
         if commit:
@@ -79,6 +90,11 @@ def execute_query(connection, query, params=None, fetchone=False, commit=False):
         print("Error MySQL:", err)
         if commit:
             connection.rollback()
+        # Intentar reconectar si hay un error en la conexión
+        if "MySQL server has gone away" in str(err):
+            print("Intentando reconectar...")
+            connection = connect_with_retry()
+            return execute_query(connection, query, params, fetchone, commit)
         return None
 
 # Iniciar conexión y keep-alive

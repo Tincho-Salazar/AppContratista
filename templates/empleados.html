@@ -88,40 +88,53 @@
                 <input type="hidden" id="empleadoId" name="id">
                 <input type="hidden" id="contratistaId" name="contratista_id" value="{{ contratista_id }}">
                 <div class="modal-body">
+                    <!-- Nombre en una sola línea -->
                     <div class="mb-3">
                         <label for="nombre" class="form-label">Nombre</label>
                         <input type="text" class="form-control" id="nombre" name="nombre" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="cuil_dni" class="form-label">CUIL/DNI</label>
-                        <input type="text" class="form-control" id="cuil_dni" name="cuil_dni" required>
+                    
+                    <!-- CUIT/DNI y Puesto en una sola línea -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="cuil_dni" class="form-label">CUIL/DNI</label>
+                            <input type="text" class="form-control" id="cuil_dni" name="cuil_dni" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="puesto" class="form-label">Puesto</label>
+                            <input type="text" class="form-control" id="puesto" name="puesto" required>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="puesto" class="form-label">Puesto</label>
-                        <input type="text" class="form-control" id="puesto" name="puesto" required>
+                    
+                    <!-- Fecha de Alta y Fecha de Baja en una sola línea -->
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="alta" class="form-label">Fecha de Alta</label>
+                            <input type="date" class="form-control" id="alta" name="alta" required>
+                        </div>
+                        <div class="col-md-6 mb-3" id="fecha_baja_group" style="display: none;">
+                            <label for="fecha_baja" class="form-label">Fecha de Baja</label>
+                            <input type="date" class="form-control" id="fecha_baja" name="fecha_baja">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="alta" class="form-label">Fecha de Alta</label>
-                        <input type="date" class="form-control" id="alta" name="alta" required>
+                    
+                    <!-- Sueldo General a la izquierda y botones a la derecha -->
+                    <div class="row align-items-center">
+                        <div class="col-md-6 mb-3">
+                            <label for="sueldo_general" class="form-label">Sueldo General</label>
+                            <input type="number" step="0.01" class="form-control" id="sueldo_general" name="sueldo_general" required>
+                        </div>
+                        <div class="col-md-6 d-flex justify-content-end mb-3">
+                            <button type="button" class="btn btn-secondary me-2 mt-4" data-bs-dismiss="modal">Cerrar</button>
+                            <button type="submit" class="btn btn-primary mt-4">Guardar</button>
+                        </div>
                     </div>
-                    <div class="mb-3" id="fecha_baja_group" style="display: none;">
-                        <label for="fecha_baja" class="form-label">Fecha de Baja</label>
-                        <input type="date" class="form-control" id="fecha_baja" name="fecha_baja">
-                    </div>
-                    <div class="mb-3">
-                        <label for="sueldo_general" class="form-label">Sueldo General</label>
-                        <input type="number" step="0.01" class="form-control" id="sueldo_general" name="sueldo_general"
-                            required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 
 <!-- Modal de confirmación -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteLabel" aria-hidden="true">
@@ -163,6 +176,7 @@
                         "next": "&gt;" // símbolo de siguiente
                     }
                 },
+                "responsive": true,
                 "paging": true,
                 "searching": true,
                 "ordering": true,
@@ -175,9 +189,9 @@
             });
         });
         // Mostrar el modal para editar empleado
-        $('.editar-empleado').click(function () {
+        $(document).on('click', '.editar-empleado', function () {
+            // $('.editar-empleado').click(function () {
             empleadoId = $(this).data('id');
-
             $.ajax({
                 url: '/obtener_empleado/' + empleadoId,
                 type: 'GET',
@@ -217,11 +231,16 @@
             $('#modalEmpleado').modal('show');
         });
         // Eliminar empleado
-        $('.eliminar-empleado').click(function () {
+        $(document).on('click', '.eliminar-empleado', function () {
             empleadoId = $(this).data('id');
             var modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
             modal.show();
         });
+        // $('.eliminar-empleado').click(function () {
+        //     empleadoId = $(this).data('id');
+        //     var modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+        //     modal.show();
+        // });
 
         $('#confirmDeleteButton').click(function () {
             if (empleadoId) {

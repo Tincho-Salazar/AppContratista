@@ -11,7 +11,7 @@
     }
 
     /* Transición suave para el cambio de fondo */
-    .table tbody tr {
+    table tbody tr {
         transition: background-color 0.3s ease;
     }
 </style>
@@ -120,38 +120,6 @@
                 </tbody>
             </table>
         </div>
-        <!-- {% for documento in documentos %}
-            <div class="col-md-4 mb-3 p-3">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Documento ID: {{ documento[0] }}</h5>
-                        <p class="card-text"><strong>Fecha de Entrega:</strong> {{ documento[2] }}</p>
-                        <p class="card-text"><strong>Periodo:</strong> {{ documento[3] }}</p>
-                        <p class="card-text"><strong>Pago 931:</strong> {{ 'Sí' if documento[4] else 'No' }}</p>
-                        <p class="card-text"><strong>UATRE:</strong> {{ 'Sí' if documento[5] else 'No' }}</p>
-                        <p class="card-text"><strong>IVA:</strong> {{ 'Sí' if documento[6] else 'No' }}</p>
-                        <p class="card-text"><strong>Pago Sepelio:</strong> {{ 'Sí' if documento[7] else 'No' }}</p>
-                        <p class="card-text"><strong>F931 AFIP:</strong> {{ 'Sí' if documento[8] else 'No' }}</p>
-                        <p class="card-text"><strong>Obra Social:</strong> {{ 'Sí' if documento[9] else 'No' }}</p>
-                        <p class="card-text"><strong>Personal Afectado:</strong> {{ documento[10] }}</p>
-                        <p class="card-text"><strong>RC Sueldos:</strong> {{ 'Sí' if documento[11] else 'No' }}</p>
-                        <p class="card-text"><strong>Altas:</strong> {{ 'Sí' if documento[12] else 'No' }}</p>
-                        <p class="card-text"><strong>Bajas:</strong> {{ 'Sí' if documento[13] else 'No' }}</p>
-                        <p class="card-text"><strong>ART:</strong> {{ 'Sí' if documento[14] else 'No' }}</p>
-                        <p class="card-text"><strong>S. Vida:</strong> {{ 'Sí' if documento[15] else 'No' }}</p>
-                        <p class="card-text"><strong>Poliza Vida:</strong> {{ 'Sí' if documento[16] else 'No' }}</p>
-                        <p class="card-text"><strong>TK Pago Vida:</strong> {{ 'Sí' if documento[17] else 'No' }}</p>
-                        <p class="card-text"><strong>Remun Bruta:</strong> {{ documento[18] }}</p>
-                        <p class="card-text"><strong>Prom S931:</strong> {{ documento[19] }}</p>
-                        <button class="btn btn-outline-primary btn-sm editar-documento" data-id="{{ documento[0] }}"
-                            data-bs-toggle="modal" data-bs-target="#modalDocumento"><i class="bi bi-pencil"
-                                style="font-size: 1rem"></i></button>
-                        <button class="btn btn-outline-danger btn-sm eliminar-documento" data-id="{{ documento[0] }}"><i
-                                class="bi bi-trash" style="font-size: 1rem"></i></button>
-                    </div>
-                </div>
-            </div>
-            {% endfor %} -->
     </div>
     {% endfor %}
 </div>
@@ -303,7 +271,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                ¿Estás seguro de que deseas eliminar este documento?
+                ¿Estás seguro de que deseas eliminar este Documento?
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -312,6 +280,7 @@
         </div>
     </div>
 </div>
+
 
 {% endblock %}
 
@@ -328,6 +297,7 @@
     $(document).ready(function () {
         var contratistaId = '{{ contratista_id }}';
         var documentoId = null;
+        var documentoIdToDelete;
         // var tableId = $('table[id^="documentos-"]').attr('id');
 
         //configuracion datatable
@@ -342,6 +312,7 @@
                         "next": "&gt;" // símbolo de siguiente
                     }
                 },
+                "responsive": true,
                 "paging": true,
                 "searching": true,
                 "ordering": true,
@@ -354,12 +325,12 @@
                 "autoWidth": false
             });
         });
-        
+
 
         // Mostrar el modal para editar documento
-        $('.editar-documento').click(function () {
+        $(document).on('click', '.editar-documento', function () {
+        // $('.editar-documento').click(function () {
             documentoId = $(this).data('id');
-
             $.ajax({
                 url: '/obtener_documento/' + documentoId,
                 type: 'GET',
@@ -407,15 +378,15 @@
             $('#modalDocumentoLabel').text('Nuevo Documento');
             $('#modalDocumento').modal('show');
         });
-
-        // Eliminar documento
-        $('.eliminar-documento').click(function () {
-            documentoId = $(this).data('id');
+        /// Eliminar documento
+        $(document).on('click', '.eliminar-documento', function () {
+            documentoId = $(this).data('id');            
             var modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
             modal.show();
         });
 
-        $('#confirmDeleteButton').click(function () {
+
+        $('#confirmDeleteButton').click(function () {            
             if (documentoId) {
                 $.ajax({
                     url: '/eliminar_documento/' + documentoId,
@@ -436,7 +407,6 @@
             }
         });
 
-        // Manejar el formulario de creación/edición de documento
         // Manejar el formulario de creación/edición de documento
         $('#formDocumento').submit(function (e) {
             e.preventDefault();

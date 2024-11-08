@@ -156,6 +156,7 @@
         //configuracion datatable
         $('#contratistas').DataTable({
             "language": { "url": '{{ url_for("static", filename="Datatables/plug-ins/es-ES.json") }}',
+            "responsive" :true,
             "paginate": {
                         "first": "&laquo;&laquo;", // símbolo de primero
                         "last": "&raquo;&raquo;", // símbolo de último
