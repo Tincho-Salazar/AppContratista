@@ -21,24 +21,32 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limitar a 16 MB
 mydb = None
 mycursor = None
 
+DB_HOST = "192.168.30.216"
+DB_USER = "root"
+DB_PASSWORD = "toor"
+DB_NAME = "contratistas"
+
 # Función para conectar a la base de datos MySQL con manejo de excepciones
 def connect_to_db():
     try:
         connection = mysql.connector.connect(
-            host="192.168.30.216",
-            user="root",
-            password="toor",
-            database="contratistas",
+            host=DB_HOST,
+            user=DB_USER,
+            password=DB_PASSWORD,
+            database=DB_NAME,
             autocommit=True,
             connection_timeout=28800,  # Configura timeout alto para evitar desconexiones
             pool_name="mypool",  # Pool de conexiones para manejo eficiente
             pool_size=10  # Número de conexiones permitidas en el pool
         )
         if connection.is_connected():
-            print("Conexión exitosa a la base de datos")
-        return connection
+            # print("Conexión exitosa a la base de datos")
+            return connection
     except mysql.connector.Error as e:
         print(f"Error al conectar a la base de datos: {e}")
+        return None
+    except Exception as general_error:
+        print(f"Error inesperado al conectar a la base de datos: {general_error}")
         return None
 
 # Función para reconectar con varios intentos
@@ -54,22 +62,19 @@ def connect_with_retry(retries=5, delay=5):
 
 # Función para mantener la conexión activa (Keep-Alive)
 def keep_connection_alive(connection, interval=60):
-    global mydb  # Hacer referencia a la variable global mydb
     while True:
         try:
             # Verificar conexión actual
             if not connection.is_connected():
                 print("Conexión perdida. Intentando reconectar...")
-                mydb = connect_with_retry()  # Reintentar conexión
-                connection = mydb
+                connection = connect_with_retry()  # Reintentar conexión
             else:
                 # Realizar ping para mantener la conexión activa
                 connection.ping(reconnect=True, attempts=3, delay=5)
-                print("Conexión verificada y activa.")
+                # print("Conexión verificada y activa.")
         except mysql.connector.Error as e:
             print(f"Error en keep-alive: {e}")
-            mydb = connect_with_retry()
-            connection = mydb
+            connection = connect_with_retry()
         time.sleep(interval)
 
 # Función para ejecutar consultas SQL con manejo de errores
@@ -79,8 +84,8 @@ def execute_query(connection, query, params=None, fetchone=False, commit=False):
         if not connection.is_connected():
             connection = connect_with_retry()
 
-        cursor = connection.cursor()
-        cursor.execute(query, params)
+        cursor = connection.cursor()  # Usamos diccionario para un mejor acceso a los resultados
+        cursor.execute(query, params or ())  # Prevenir inyecciones SQL
         if commit:
             connection.commit()
         result = cursor.fetchone() if fetchone else cursor.fetchall()
@@ -97,13 +102,19 @@ def execute_query(connection, query, params=None, fetchone=False, commit=False):
             return execute_query(connection, query, params, fetchone, commit)
         return None
 
-# Iniciar conexión y keep-alive
-mydb = connect_with_retry()
-if mydb:
-    import threading
-    keep_alive_thread = threading.Thread(target=keep_connection_alive, args=(mydb,))
-    keep_alive_thread.daemon = True
-    keep_alive_thread.start()
+# Decorador para asegurar la conexión a la base de datos
+def ensure_db_connection(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Obtén la conexión antes de la ejecución
+        db_connection = connect_with_retry()  # Aseguramos la conexión con reintentos
+        if not db_connection:
+            print("No se pudo establecer una conexión con la base de datos")
+            return None  # Retorna None si no se conecta
+        return f(db_connection, *args, **kwargs)
+    return decorated_function
+
+
 
 # Funciones  para manejar datos la base de datos
 
@@ -147,7 +158,6 @@ def index():
         search='')
 
 
-# Ruta de Contratistas
 # Conectar a la base de datos al inicio
 mydb = connect_with_retry()
 if mydb:
@@ -158,6 +168,9 @@ else:
 @app.route('/index_admin')
 @login_required
 def index_admin():
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
+    
     if 'alertas_mostradas' not in session:
         session['alertas_mostradas'] = False
 
@@ -257,6 +270,8 @@ def index_admin():
 
 @app.route('/admin/contratistas')
 def admin_contratistas():
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     if 'usuario' not in session or session['rol'] != 'administrador':
         return redirect('/admin/login')
 
@@ -279,6 +294,8 @@ def crear_contratista():
 
 @app.route('/editar_contratista/<int:contratista_id>', methods=['POST'])
 def editar_contratista(contratista_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     try:
         nombre = request.form['nombre']
         cuit = request.form['cuit']
@@ -300,6 +317,8 @@ def editar_contratista(contratista_id):
 
 @app.route('/eliminar_contratista/<int:contratista_id>', methods=['DELETE'])
 def eliminar_contratista(contratista_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     try:
         sql = "DELETE FROM contratistas WHERE id = %s"
         val = (contratista_id,)
@@ -315,6 +334,8 @@ def eliminar_contratista(contratista_id):
 @app.route('/admin/usuarios')
 @login_required
 def admin_usuarios():
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     # Obtener datos de usuarios desde la base de datos
     query = "SELECT * FROM login"
     usuarios = execute_query(mydb, query)
@@ -322,12 +343,16 @@ def admin_usuarios():
 
 @app.route('/usuarios')
 def usuarios():
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     query = 'SELECT id, usuario, contrasena, rol FROM login'
     usuarios = execute_query(mydb, query)
     return render_template('usuario.html', usuarios=usuarios, usuario_editado=None)
 
 @app.route('/crear_usuario', methods=['POST'])
 def crear_usuario():
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     usuario = request.form['usuario']
     contrasena = request.form['contrasena']
     rol = request.form['rol']
@@ -342,6 +367,8 @@ def crear_usuario():
 
 @app.route('/editar_usuario/<int:id>', methods=['POST'])
 def editar_usuario(id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     usuario = request.form['usuario']
     contrasena = request.form['contrasena']
     rol = request.form['rol']
@@ -356,6 +383,8 @@ def editar_usuario(id):
 
 @app.route('/eliminar_usuario/<int:id>', methods=['DELETE'])
 def eliminar_usuario(id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = 'DELETE FROM login WHERE id = %s'
     val = (id,)
     execute_query(mydb, sql, params=val, commit=True)
@@ -373,6 +402,8 @@ def calendario():
 @app.route('/obtener_eventos')
 @login_required
 def obtener_eventos():
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     start = request.args.get('start')
     end = request.args.get('end')
     
@@ -409,6 +440,8 @@ def crear_evento():
         return jsonify({'error': 'No tienes permisos para realizar esta acción'}), 403
     
     data = request.json
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = """
     INSERT INTO calendario (contratista_id, fecha_evento, descripcion_evento, tipo_evento, completado) 
     VALUES (%s, %s, %s, %s, %s)
@@ -425,6 +458,8 @@ def actualizar_evento(evento_id):
     if session['rol'] != 'administrador':
         return jsonify({'error': 'No tienes permisos para realizar esta acción'}), 403
     
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     data = request.json
     sql = """
     UPDATE calendario 
@@ -442,7 +477,8 @@ def actualizar_evento(evento_id):
 def eliminar_evento(evento_id):
     if session['rol'] != 'administrador':
         return jsonify({'error': 'No tienes permisos para realizar esta acción'}), 403
-    
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = "DELETE FROM calendario WHERE id = %s"
     execute_query(mydb, sql, params=(evento_id,), commit=True)
     
@@ -451,18 +487,22 @@ def eliminar_evento(evento_id):
 @app.route('/obtener_contratistas')
 @login_required
 def obtener_contratistas():
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = "SELECT id, nombre FROM contratistas ORDER BY nombre"
     contratistas = execute_query(mydb, sql)
     return jsonify([{'id': c[0], 'nombre': c[1]} for c in contratistas])
 
 
-# Ruta de Login
+# # Ruta de Login
 @app.route('/admin/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['usuario']
         password = request.form['contrasena']        
         # Verificar las credenciales del usuario
+        if not ensure_db_connection(mydb):
+            return render_template('error.html', message='Error de conexión con la base de datos')
         sql = "SELECT * FROM login WHERE usuario = %s"
         user = execute_query(mydb, sql, params=(username,), fetchone=True)
         
@@ -482,7 +522,8 @@ def register():
         new_password = request.form['new_contrasena']
         hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
         rol = 'usuario'
-        
+        if not ensure_db_connection(mydb):
+            return render_template('error.html', message='Error de conexión con la base de datos')
         # Insertar nuevo usuario en la base de datos con el rol
         sql = "INSERT INTO login (usuario, contrasena, rol) VALUES (%s, %s, %s)"
         execute_query(mydb, sql, params=(new_username, hashed_password, rol), commit=True)
@@ -506,6 +547,8 @@ def logout():
 @app.route('/admin/empleados/<int:contratista_id>')
 @login_required
 def admin_empleados(contratista_id):   
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     nombre_contratista = obtener_valor("SELECT nombre FROM contratistas WHERE id = %s", (contratista_id,))
     
     sql = """
@@ -545,6 +588,8 @@ def admin_empleados(contratista_id):
 
 @app.route('/crear_empleado/<int:contratista_id>', methods=['POST'])
 def crear_empleado(contratista_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     data = request.form
 
     sql = """
@@ -561,6 +606,8 @@ def crear_empleado(contratista_id):
 
 @app.route('/editar_empleado/<int:empleado_id>', methods=['POST'])
 def editar_empleado(empleado_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     data = request.form
 
     sql = """
@@ -578,6 +625,8 @@ def editar_empleado(empleado_id):
 
 @app.route('/eliminar_empleado/<int:empleado_id>', methods=['DELETE'])
 def eliminar_empleado(empleado_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = "DELETE FROM personal WHERE id=%s"
 
     try:
@@ -589,6 +638,8 @@ def eliminar_empleado(empleado_id):
 
 @app.route('/obtener_empleado/<int:empleado_id>', methods=['GET'])
 def obtener_empleado(empleado_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = """
     SELECT id, contratista_id, cuil_dni, nombre, puesto, DATE_FORMAT(alta, '%d/%m/%Y') as alta, 
            DATE_FORMAT(baja, '%d/%m/%Y') as baja, sueldo_general 
@@ -615,6 +666,8 @@ def obtener_empleado(empleado_id):
 @app.route('/admin/vehiculos/<int:contratista_id>')
 @login_required
 def admin_vehiculos(contratista_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     nombre_contratista = obtener_valor("SELECT nombre FROM contratistas WHERE id = %s", (contratista_id,))
 
     # Consulta combinada para obtener vehículos y personal asignado
@@ -628,6 +681,7 @@ def admin_vehiculos(contratista_id):
     WHERE v.contratista_id = %s
     ORDER BY v.id DESC
     """
+
     vehiculos = execute_query(mydb, sql, params=(contratista_id,))
 
     # Organiza por año (basado en la póliza)
@@ -671,7 +725,6 @@ def admin_vehiculos(contratista_id):
 @app.route('/crear_vehiculo/<int:contratista_id>', methods=['POST'])
 def crear_vehiculo(contratista_id):
     data = request.form
-
     sql_vehiculo = """
         INSERT INTO vehiculos (contratista_id, Unidad, patente, poliza, revision_tecnica_desde, revision_tecnica_hasta, pago, vigencia)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -681,6 +734,8 @@ def crear_vehiculo(contratista_id):
         INSERT INTO vehiculos_personal (vehiculo_id, personal_id, carnet_conducir, vigencia, habilitado)
         VALUES (%s, %s, %s, %s, %s)
     """
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
 
     try:
         # Convertir las fechas a formato datetime si están presentes
@@ -691,21 +746,26 @@ def crear_vehiculo(contratista_id):
         vigencia = convertir_fecha(data.get('vigencia'))
 
         # Convertir el campo habilitado a un valor entero (0 o 1)
-        habilitado = 1 if data.get('habilitado') == 'on' else 0
-
+        habilitado = data.get('habilitado')
+        
+        # Crear un cursor persistente
+        cursor = mydb.cursor()
         # Ejecutar la consulta SQL con los datos proporcionados y el contratista_id de la URL
+        
         # Insertar el vehículo
         execute_query(mydb, sql_vehiculo, params=(
             contratista_id, data['unidad'], data['patente'], poliza,
             revision_desde, revision_hasta, pago, vigencia
         ), commit=True)
-        vehiculo_id = mydb.cursor().lastrowid  # Obtener el ID del vehículo insertado
-
+       # Obtener el ID del último vehículo insertado usando SELECT MAX(id)
+        cursor.execute("SELECT MAX(id) FROM vehiculos")
+        vehiculo_id = cursor.fetchone()[0]  # Recuperar el ID del vehículo
         # Insertar el personal asignado al vehículo
         execute_query(mydb, sql_personal, params=(
             vehiculo_id, data['conductor'], data['carnet'], vigencia,
             habilitado
         ), commit=True)
+        cursor.close()
 
         return jsonify({"message": "Vehículo creado correctamente."}), 200
     except mysql.connector.Error as err:
@@ -717,8 +777,11 @@ def crear_vehiculo(contratista_id):
 
 @app.route('/editar_vehiculo/<int:vehiculo_id>', methods=['POST'])
 def editar_vehiculo(vehiculo_id):
-    data = request.form
     conductor_id = request.args.get('conductor_id')  # Obtener el conductor_id actual (conductorId en vehiculos_personal)
+    data = request.form
+    print(data,"Conductor :",conductor_id)
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
 
     sql_vehiculo = """
         UPDATE vehiculos
@@ -761,6 +824,8 @@ def editar_vehiculo(vehiculo_id):
 
 @app.route('/eliminar_vehiculo/<int:vehiculo_id>', methods=['DELETE'])
 def eliminar_vehiculo(vehiculo_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = "DELETE FROM vehiculos WHERE id=%s"
 
     try:
@@ -784,6 +849,9 @@ def obtener_vehiculo(vehiculo_id):
     LEFT JOIN personal p ON vp.personal_id = p.id
     WHERE v.id = %s
     """
+    print(vehiculo_id,)
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
 
     # Si conductor_id está presente, ajusta la consulta para incluirlo
     if conductor_id:
@@ -833,6 +901,8 @@ def obtener_vehiculo(vehiculo_id):
 
 @app.route('/obtener_personal_asignado/<int:contratista_id>', methods=['GET'])
 def obtener_personal_asignado(contratista_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = "SELECT id, nombre FROM personal WHERE contratista_id = %s"
     personal_asignado = execute_query(mydb, sql, params=(contratista_id,))
 
@@ -846,6 +916,8 @@ def obtener_personal_asignado(contratista_id):
 @app.route('/admin/documentos/<int:contratista_id>')
 @login_required
 def admin_documentos(contratista_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql_documentos = """
         SELECT * FROM cargas_sociales WHERE contratista_id = %s
         ORDER BY fecha_entrega DESC
@@ -867,6 +939,8 @@ def admin_documentos(contratista_id):
 
 @app.route('/crear_documento/<int:contratista_id>', methods=['POST'])
 def crear_documento(contratista_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     data = request.form.to_dict()
     data['contratista_id'] = contratista_id
     
@@ -917,6 +991,8 @@ def crear_documento(contratista_id):
 
 @app.route('/editar_documento/<int:documento_id>', methods=['POST'])
 def editar_documento(documento_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     try:
         data = request.form.to_dict()
 
@@ -978,6 +1054,8 @@ def editar_documento(documento_id):
 
 @app.route('/eliminar_documento/<int:documento_id>', methods=['DELETE'])
 def eliminar_documento(documento_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = "DELETE FROM cargas_sociales WHERE id = %s"
     try:
         execute_query(mydb, sql, params=(documento_id,), commit=True)
@@ -989,6 +1067,8 @@ def eliminar_documento(documento_id):
 
 @app.route('/obtener_documento/<int:documento_id>', methods=['GET'])
 def obtener_documento(documento_id):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     sql = """
     SELECT id, contratista_id, fecha_entrega, periodo, pago_931, uatre, iva, 
            pago_sepelio, f_931_afip, obra_social, personal_afectado, rc_sueldos, 
@@ -1162,6 +1242,8 @@ def upload_file():
 
 
 def obtener_valor(consulta,parametro):
+    if not ensure_db_connection(mydb):
+        return render_template('error.html', message='Error de conexión con la base de datos')
     
     mycursor.execute(consulta,parametro)    
     # Obtener el resultado de la consulta
@@ -1177,5 +1259,5 @@ def obtener_valor(consulta,parametro):
 if __name__ == '__main__':
     # db_connection = connect_with_retry()
     # Usa únicamente Waitress para correr el servidor
-    # app.run(debug=True)
-    serve(app, host='0.0.0.0', port=8000)
+    app.run(debug=True)
+    # serve(app, host='0.0.0.0', port=8000)

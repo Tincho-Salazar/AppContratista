@@ -273,6 +273,7 @@
     $(document).ready(function () {
         var contratistaId = '{{ contratista_id }}';
         var vehiculoId = null;
+        var EsNuevo = true;
         $('#myTabContent table').each(function () {
             $(this).DataTable({
                 "language": {
@@ -297,47 +298,23 @@
             });
         });
         // Mostrar el modal para editar vehículo
-
-        // $(document).on('click', '.edita-vehiculo', function () {
-        //     // Obtener el ID del vehículo y del conductor
-        //     var vehiculoId = $(this).data('id');
-        //     conductorIdGlobal = $(this).data('conductor-id'); // Asignar el conductorId a la variable global
-
-        //     $.ajax({
-        //         url: '/obtener_vehiculo/' + vehiculoId + '?conductor_id=' + conductorIdGlobal,
-        //         type: 'GET',
-        //         success: function (response) {
-        //             var vehiculo = response.vehiculo;
-        //             $('#vehiculoId').val(vehiculo.id);
-        //             $('#unidad').val(vehiculo.unidad);
-        //             $('#patente').val(vehiculo.patente);
-        //             $('#poliza').val(vehiculo.poliza);
-        //             $('#revision_desde').val(vehiculo.revision_tecnica_desde);
-        //             $('#revision_hasta').val(vehiculo.revision_tecnica_hasta);
-        //             $('#pago').val(vehiculo.pago);
-        //             $('#conductorNombre').val(vehiculo.conductor);
-        //             $('#carnet').val(vehiculo.carnet_conducir);
-        //             $('#vigencia').val(vehiculo.vigencia);
-        //             $('#habilitado').prop('checked', vehiculo.habilitado == 1);
-
-        //             // Establecer la URL para el formulario
-        //             $('#formVehiculo').attr('action', '/editar_vehiculo/' + vehiculo.id + '?conductor_id=' + conductorIdGlobal + '&conductor_anterior=' + conductorIdGlobal);
-        //             $('#modalVehiculoLabel').text('Editar Vehículo'+conductorIdGlobal);
-        //             $('#modalVehiculo').modal('show');
-        //         },
-        //         error: function () {
-        //             showToast('Error al obtener los datos del vehículo', 'danger');
-        //         }
-        //     });
-        // });
         $(document).on('click', '.edita-vehiculo', function () {
-            var vehiculoId = $(this).data('id');
-            conductorIdGlobal = $(this).data('conductor-id'); // Captura el conductorId  
-            $('#conductorId').val(conductorIdGlobal);          
+            vehiculoId = $(this).data('id');
+            conductorIdGlobal = $(this).data('conductor-id'); // Captura el conductorId
+            $('#conductorId').val(conductorIdGlobal);
+            EsNuevo = false
+            // Hacer la solicitud AJAX            
             $.ajax({
                 url: '/obtener_vehiculo/' + vehiculoId + '?conductor_id=' + conductorIdGlobal,
                 type: 'GET',
                 success: function (response) {
+                    // Verificar si la respuesta tiene la estructura esperada
+                    if (!response || !response.vehiculo) {
+                        console.error('La respuesta no contiene la propiedad esperada.');
+                        showToast('Error en la respuesta del servidor', 'danger');
+                        return;
+                    }
+
                     var vehiculo = response.vehiculo;
                     $('#vehiculoId').val(vehiculo.id);
                     $('#unidad').val(vehiculo.unidad);
@@ -350,8 +327,7 @@
                     $('#carnet').val(vehiculo.carnet_conducir);
                     $('#vigencia').val(vehiculo.vigencia);
                     $('#habilitado').prop('checked', vehiculo.habilitado == 1);
-
-                    // Establecer la URL para el formulario, incluyendo conductorId
+                    // Establecer la URL para el formulario
                     $('#formVehiculo').attr('action', '/editar_vehiculo/' + vehiculo.id + '?conductor_id=' + conductorIdGlobal);
                     $('#modalVehiculoLabel').text('Editar Vehículo');
                     $('#modalVehiculo').modal('show');
@@ -367,6 +343,7 @@
             $('#formVehiculo').trigger('reset');
             $('#formVehiculo').attr('action', '/crear_vehiculo/' + contratistaId);
             $('#modalVehiculoLabel').text('Nuevo Vehículo');
+            EsNuevo = true
             $('#modalVehiculo').modal('show');
         });
 
@@ -436,43 +413,28 @@
             $('#conductorModal').modal('hide');
         });
 
-        // Manejar el formulario de creación/edición de vehículo
-        // $('#formVehiculo').submit(function (e) {
-        //     e.preventDefault();
-        //     var form = $(this);
-        //     var vehiculoId = $('#vehiculoId').val(); // Asegúrate de que el ID del vehículo esté en un campo del formulario                        
-        //     // Construir la URL con los parámetros necesarios
-        //     var url = '/editar_vehiculo/' + vehiculoId + '?conductor_id=' + conductorIdActual + '&conductor_anterior=' + conductorIdGlobal;            
-        //     var habilitado = form.find('#habilitado').is(':checked') ? '1' : '0';
-        //     form.find('#habilitado').val(habilitado);
 
-        //     $.ajax({
-        //         url: url,
-        //         type: 'POST',
-        //         data: form.serialize(),
-        //         success: function (response) {
-        //             var bsToast = showToast(response.message, 'success');
-        //             bsToast._element.addEventListener('hidden.bs.toast', function () {
-        //                 location.reload();
-        //             });
-        //             form.trigger('reset');
-        //             $('#modalVehiculo').modal('hide');
-        //         },
-        //         error: function (xhr) {
-        //             var response = xhr.responseJSON;
-        //             showToast(response.message || 'Ha ocurrido un error', 'danger');
-        //         }
-        //     });
-        // });
         // Manejar el formulario de creación/edición de vehículo
         $('#formVehiculo').submit(function (e) {
             e.preventDefault();
             var form = $(this);
             var vehiculoId = $('#vehiculoId').val(); // Asegúrate de que el ID del vehículo esté en un campo del formulario
-            var url = '/editar_vehiculo/' + vehiculoId + '?conductor_id=' + conductorIdGlobal;
+            if (EsNuevo) {  
+                url = '/crear_vehiculo/' + contratistaId;
+            } else {
+                url = '/editar_vehiculo/' + vehiculoId + '?conductor_id=' + conductorIdGlobal;
+            }
             var habilitado = form.find('#habilitado').is(':checked') ? '1' : '0';
             form.find('#habilitado').val(habilitado);
-            
+
+            // Obtener los valores de todos los campos del formulario
+            // const formData = {};
+            // form.serializeArray().forEach(input => {
+            //     formData[input.name] = input.value;
+            // });
+
+            // // Registrar todos los valores en la consola
+            // console.log('Valores del formulario:', formData);
 
             $.ajax({
                 url: url,

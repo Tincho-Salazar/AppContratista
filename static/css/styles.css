@@ -108,9 +108,26 @@ label {
 
 /* Efecto de hover */
 .navbar-nav .nav-item .nav-link:hover {
-    color:  #e2df14 !important; /* Color de resaltado al hacer hover */
+    color:  #F0AC29 !important; /* Color de resaltado al hacer hover */
 }
 
+.nav-tabs .nav-link.active {
+    background-color: #E2E6EA; /* Fondo resaltado */
+    color: #0056b3; /* Texto en un azul más oscuro */
+    font-weight: bold; /* Texto en negrita */
+    border-color: #dee2e6 #dee2e6 #fff; /* Personaliza el borde */
+}
+
+.nav-tabs .nav-link {
+    transition: background-color 0.3s ease, color 0.3s ease; /* Transición suave */
+}
+
+.nav-tabs .nav-link:hover {
+    background-color: #0056b3; /* Fondo azul al hacer hover */
+    color: white; /* Cambiar texto a blanco */
+    font-weight: bold; /* Mantener el texto en negrita */
+    border-color: #0056b3; /* Bordes de color azul al hacer hover */
+}
 #toast-container {
     position: absolute;
     bottom: 30px;

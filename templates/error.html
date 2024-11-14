@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>¡Oops! Ha ocurrido un error</h1>
+        <p>{{ message }}</p>
+        <p>Por favor, intenta de nuevo más tarde o contacta al soporte técnico si el problema persiste.</p>
+        <a href="{{ url_for('index_admin') }}" class="btn btn-primary">Volver al inicio</a>
+    </div>
+</body>
+</html>
